@@ -1,5 +1,4 @@
 from kivy.app import App
-from kivy.graphics import Color, Rectangle
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -11,6 +10,11 @@ from instructions import txt_instruction, txt_test1, txt_test2, txt_test3, txt_s
 from ruffier import test
 
 from seconds import Seconds
+from sits import Sits
+from runner import Runner
+
+Window.clearcolor = (.87, 0.54, 0.8, 0.3)
+btn_color = (0.98, 0.31, 0.8, 1)
 
 age = 7
 name = ""
@@ -28,19 +32,13 @@ def check_int(str_num):
 class InstrScr(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        with self.canvas.before:
-            Color(0.4, 0.6, 0.5, 1)  # Установите желаемый цвет (RGBA)
-            self.rect = Rectangle(size=self.size, pos=self.pos)
-
-        self.bind(size=self._update_rect, pos=self._update_rect)
-
         instr = Label(text=txt_instruction)
         lbl1 = Label(text='Введите имя:', halign='right')
         self.in_name = TextInput(multiline=False)
         lbl2 = Label(text='Введите возраст:', halign='right')
         self.in_age = TextInput(text='7', multiline=False)
         self.btn = Button(text='Начать', size_hint=(0.3, 0.2), pos_hint={'center_x': 0.5})
+        self.btn.background_color = btn_color
         self.btn.on_press = self.next
         line1 = BoxLayout(size_hint=(0.8, None), height='30sp')
         line2 = BoxLayout(size_hint=(0.8, None), height='30sp')
@@ -55,9 +53,6 @@ class InstrScr(Screen):
         outer.add_widget(self.btn)
         self.add_widget(outer)
 
-    def _update_rect(self, *args):
-        self.rect.pos = self.pos
-        self.rect.size = self.size
     def next(self):
         name = self.in_name.text
         age = check_int(self.in_age.text)
@@ -71,17 +66,9 @@ class InstrScr(Screen):
 class PulseScr(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        with self.canvas.before:
-            Color(0.4, 0.6, 0.5, 1)  # Установите желаемый цвет (RGBA)
-            self.rect = Rectangle(size=self.size, pos=self.pos)
-
-        self.bind(size=self._update_rect, pos=self._update_rect)
-
         self.next_screen = False
 
         instr = Label(text=txt_test1)
-        # lbl1 = Label(text='Считайте пульс')
         self.lbl_sec = Seconds(15)
         self.lbl_sec.bind(done=self.sec_finished)
 
@@ -93,6 +80,7 @@ class PulseScr(Screen):
         line.add_widget(lbl_result)
         line.add_widget(self.in_result)
         self.btn = Button(text='Начать', size_hint=(0.3, 0.4), pos_hint={'center_x': 0.5})
+        self.btn.background_color = btn_color
         self.btn.on_press = self.next
         outer = BoxLayout(orientation='vertical', padding=8, spacing=8)
         outer.add_widget(instr)
@@ -101,10 +89,6 @@ class PulseScr(Screen):
         outer.add_widget(line)
         outer.add_widget(self.btn)
         self.add_widget(outer)
-
-    def _update_rect(self, *args):
-        self.rect.pos = self.pos
-        self.rect.size = self.size
 
     def sec_finished(self, *args):
         self.next_screen = True
@@ -129,27 +113,42 @@ class PulseScr(Screen):
 class CheckSits(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.next_screen = False
 
-        with self.canvas.before:
-            Color(0.4, 0.6, 0.5, 1)  # Установите желаемый цвет (RGBA)
-            self.rect = Rectangle(size=self.size, pos=self.pos)
+        instr = Label(text=txt_sits, size_hint=(0.5, 1))
+        self.lbl_sits = Sits(30)
+        self.run = Runner(total=30, steptime=1.5, size_hint=(0.4, 1))
+        self.run.bind(finished=self.run_finished)
 
-        self.bind(size=self._update_rect, pos=self._update_rect)
+        line = BoxLayout()
+        vlay = BoxLayout(orientation='vertical', size_hint=(0.3, 1))
+        vlay.add_widget(self.lbl_sits)
+        line.add_widget(instr)
+        line.add_widget(vlay)
+        line.add_widget(self.run)
 
-        instr = Label(text=txt_sits)
-        self.btn = Button(text='Продолжить', size_hint=(0.3, 0.2), pos_hint={'center_x': 0.5})
+        self.btn = Button(text='Начать', size_hint=(0.3, 0.2), pos_hint={'center_x': 0.5})
+        self.btn.background_color = btn_color
         self.btn.on_press = self.next
+
         outer = BoxLayout(orientation='vertical', padding=8, spacing=8)
-        outer.add_widget(instr)
+        outer.add_widget(line)
         outer.add_widget(self.btn)
+
         self.add_widget(outer)
 
-    def _update_rect(self, *args):
-        self.rect.pos = self.pos
-        self.rect.size = self.size
+    def run_finished(self, instance, value):
+        self.btn.set_disabled(False)
+        self.btn.text = 'Продолжить'
+        self.next_screen = True
 
     def next(self):
-        self.manager.current = 'pulse2'
+        if not self.next_screen:
+            self.btn.set_disabled(True)
+            self.run.start()
+            self.run.bind(value=self.lbl_sits.next)
+        else:
+            self.manager.current = 'pulse2'
 
 
 class PulseScr2(Screen):
@@ -158,13 +157,6 @@ class PulseScr2(Screen):
 
         self.stage = 0
         super().__init__(**kwargs)
-
-        with self.canvas.before:
-            Color(0.4, 0.6, 0.5, 1)  # Установите желаемый цвет (RGBA)
-            self.rect = Rectangle(size=self.size, pos=self.pos)
-
-        self.bind(size=self._update_rect, pos=self._update_rect)
-
         instr = Label(text=txt_test3)
         line1 = BoxLayout(size_hint=(0.8, None), height='30sp')
         self.lbl_sec = Seconds(15)
@@ -184,6 +176,7 @@ class PulseScr2(Screen):
         line2.add_widget(lbl_result2)
         line2.add_widget(self.in_result2)
         self.btn = Button(text='Начать', size_hint=(0.3, 0.5), pos_hint={'center_x': 0.5})
+        self.btn.background_color = btn_color
         self.btn.on_press = self.next
         outer = BoxLayout(orientation='vertical', padding=8, spacing=8)
         outer.add_widget(instr)
@@ -194,12 +187,8 @@ class PulseScr2(Screen):
         outer.add_widget(self.btn)
         self.add_widget(outer)
 
-    def _update_rect(self, *args):
-        self.rect.pos = self.pos
-        self.rect.size = self.size
-
     def sec_finished(self, *args):
-        if self.lbl_sec.done:
+        if self.lbl_sec.done == True:
             if self.stage == 0:
                 # закончили первый подсчёт, отдыхаем
                 self.stage = 1
@@ -239,22 +228,11 @@ class PulseScr2(Screen):
 class Result(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        with self.canvas.before:
-            Color(0.4, 0.6, 0.5, 1)  # Установите желаемый цвет (RGBA)
-            self.rect = Rectangle(size=self.size, pos=self.pos)
-
-        self.bind(size=self._update_rect, pos=self._update_rect)
-
         self.outer = BoxLayout(orientation='vertical', padding=8, spacing=8)
         self.instr = Label(text='')
         self.outer.add_widget(self.instr)
         self.add_widget(self.outer)
         self.on_enter = self.before
-
-    def _update_rect(self, *args):
-        self.rect.pos = self.pos
-        self.rect.size = self.size
 
     def before(self):
         global name
